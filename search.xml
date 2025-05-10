@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search> 
+  
+  
+    
+    <entry>
+      <title>how to construct a stm32 stdlib project without ide</title>
+      <link href="/2025/05/10/construct-stm32-stdlib-project/"/>
+      <url>/2025/05/10/construct-stm32-stdlib-project/</url>
+      
+        <content type="html"><![CDATA[<p>in other words, how to create a stm32 stdlib project with gcc&#x2F;makefile<br>actally, what you need do is to consider it as a c projectt then create a proper project structure and create a makefile to build it, what make it special is the regular c file become the peripheral file and you need to provide a startfile and a link script explicitly.</p><h1 id="Peripheral-Library"><a href="#Peripheral-Library" class="headerlink" title="Peripheral Library"></a>Peripheral Library</h1><p>library structure:</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">STM32F4xx_DSP_StdPeriph_Lib_V1.9.0  $ tree -L 2 .             </span><br><span class="line">.</span><br><span class="line">├── _htmresc</span><br><span class="line">│   ├── CMSIS_Logo_Final.jpg</span><br><span class="line">│   ├── favicon.png</span><br><span class="line">│   ├── logo.bmp</span><br><span class="line">│   ├── mini-st_2020.css</span><br><span class="line">│   ├── st_logo_2020.png</span><br><span class="line">│   └── st_logo.png</span><br><span class="line">├── Libraries</span><br><span class="line">│   ├── CMSIS</span><br><span class="line">│   └── STM32F4xx_StdPeriph_Driver</span><br><span class="line">├── Package_license.html</span><br><span class="line">├── Package_license.md</span><br><span class="line">├── Project</span><br><span class="line">│   ├── STM32F4xx_StdPeriph_Examples</span><br><span class="line">│   └── STM32F4xx_StdPeriph_Templates</span><br><span class="line">├── Release_Notes.html</span><br><span class="line">├── stm32f4xx_dsp_stdperiph_lib_um.chm</span><br><span class="line">└── Utilities</span><br><span class="line">    ├── Media</span><br><span class="line">    ├── ST</span><br><span class="line">    ├── STM32_EVAL</span><br><span class="line">    └── Third_Party</span><br><span class="line"></span><br><span class="line">13 directories, 10 files</span><br><span class="line"></span><br></pre></td></tr></table></figure><h2 id="Library"><a href="#Library" class="headerlink" title="Library"></a>Library</h2><p>包含两个文件夹CMSIS 和 STM32F4xx_StdPeriph_Driver, CMSIS(Cortex Microcontroller Software Interface Standard) 包含对Cortex的调用接口支持,而STM32F4xx_StdPeriph_Driver 包含了实际上的外设库文件，包括gpio&#x2F;spi&#x2F;i2c等等。</p><h3 id="CMSMS"><a href="#CMSMS" class="headerlink" title="CMSMS"></a>CMSMS</h3><p>CMSIS是arm提供的</p><ul><li>启动文件</li></ul><p>位于<code>Libraries/CMSIS/Device/ST/STM32F4xx/Source/Templates</code>，包含不同开发工具链的启动文件</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">Templates  $ tree -L 1 .                                          </span><br><span class="line">.</span><br><span class="line">├── arm   // 给keil的</span><br><span class="line">├── gcc_ride7 // 给gcc的</span><br><span class="line">├── iar // 给 IAR Embedded Workbench</span><br><span class="line">├── SW4STM32 // 给System Workbench <span class="keyword">for</span> STM32, 基于 Eclipse 的免费 IDE，使用 GCC 工具链</span><br><span class="line">├── system_stm32f4xx.c</span><br><span class="line">├── TASKING // TASKING VX-Toolset（第三方编译器，汽车/工业领域常用）</span><br><span class="line">└── TrueSTUDIO //  TrueSTUDIO（ST 官方收购的基于 Eclipse 的免费 IDE，后改为 SW4STM32</span><br><span class="line"></span><br><span class="line">7 directories, 1 file</span><br></pre></td></tr></table></figure><p>其中，arm和gcc的启动文件我都尝试过，剩余几个由ai给出解释，未做验证。</p><ul><li>其他头文件<ul><li>stm32f4xx.h<br>  位于<code>Libraries/CMSIS/Device/ST/STM32F4xx/Include</code> 包含与外设相关的定义，比如寄存器映射,外设结构体，比如<code>GPIO_TypeDef</code>就在这个文件中</li><li>system_stm32f4xx.h<br>  位于<code>Libraries/CMSIS/Device/ST/STM32F4xx/Include</code>包含系统级别初始化相关的定义，实际上在stm32f4中，只包含了两个函数的定义</li></ul>  <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">extern</span> <span class="type">void</span> <span class="title function_">SystemInit</span><span class="params">(<span class="type">void</span>)</span>;</span><br><span class="line"><span class="keyword">extern</span> <span class="type">void</span> <span class="title function_">SystemCoreClockUpdate</span><span class="params">(<span class="type">void</span>)</span>;</span><br></pre></td></tr></table></figure><ul><li>core_cm4.h<br>  位于<code>Libraries/CMSIS/Include</code>包含ARM Cortex CPU 本身包含的一些功能，比如中断,系统定时器，fpu支持，与芯片厂商(比如ST)无关</li></ul></li></ul><h3 id="Driver"><a href="#Driver" class="headerlink" title="Driver"></a>Driver</h3><p>很多，包含必要的就行</p><h2 id="其他文件"><a href="#其他文件" class="headerlink" title="其他文件"></a>其他文件</h2><ol><li>stm32f40x_conf.h<ul><li>这个文件做了两件事，包含所有外设头文件和定义了assert_param这个宏。</li><li>这个文件在stm32f4xx.h中被包含</li></ul> <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">ifdef</span> USE_STDPERIPH_DRIVER</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&quot;stm32f4xx_conf.h&quot;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">endif</span> <span class="comment">/* USE_STDPERIPH_DRIVER */</span></span></span><br></pre></td></tr></table></figure><ul><li>而且这个文件并未在Libraries中，但是可以在<code>Project/STM32F4xx_StdPeriph_Templates</code>下找到，所以这个文件不是必须的。</li><li>如果不想使用这个文件，就需要手动做上面的两件事，原本只需要包含<code>stm32f4xx.h</code>就会包含<code>stm32f4xx_conf.h</code>然后包含外设头文件，现在需要在必要的时候显式包含外设头文件，当然，这个一个好的习惯，所以不是问题。接下来，需要显式定义<code>assert_param</code>,问题在与各个外设.c文件都在使用这个宏，如果在某个.h中手动定义的话，还需要修改外设.h文件以包含进去，不可行；有一个方法是通过gcc传递定义，即在makefile中通过<code>-D&#39;assert_param(expr)=((void)0)&#39;</code>的方式定义。</li><li>总结，还是直接使用这个文件。使用条件是需要定义<code>USE_STDPERIPH_DRIVER</code>和<code>USE_FULL_ASSERT</code>宏，同时对于不同芯片，还需要定义一些特定的宏详细看<code>stm32f4xx_conf.h</code>文件</li></ul></li><li>stm32f10x_it.h<br>这个文件和<code>stm32f4xx_conf.h</code>一样，没有在<code>Libraries</code>而在<code>Project</code>中</li><li>链接脚本<br>这个也有意思，没有提供，目前我知道的能提供链接脚本的只有STM32CubeMX，而且虽然目前cubemx只支持hal库，但是生成的链接脚本也能用于标准库</li></ol><h1 id="项目结构"><a href="#项目结构" class="headerlink" title="项目结构"></a>项目结构</h1><p>项目结构不是固定统一的，只要能够写出对应的Makefile就行。<br>我的项目结构如下</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">example  $ tree -L 2 .                                                                                                           [0/0]</span><br><span class="line">.</span><br><span class="line">├── Core</span><br><span class="line">│   ├── Inc // 用户头文件 和没有在Libraries中的头文件</span><br><span class="line">│   └── Src // 用户.c 和没有在Libraries中的.c文件</span><br><span class="line">├── Libraries // 全部复制过来，至于用那些，在makefie中定义</span><br><span class="line">│   ├── CMSIS</span><br><span class="line">│   └── STM32F10x_StdPeriph_Driver</span><br><span class="line">├── Makefile</span><br><span class="line">└── STM32F103XX_FLASH.ld</span><br><span class="line"></span><br><span class="line">7 directories, 2 files</span><br></pre></td></tr></table></figure><p>Core 目录如下</p><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">Core  $ tree                                                                                                                     [0/0]</span><br><span class="line">.</span><br><span class="line">├── Inc</span><br><span class="line">│   ├── led.h</span><br><span class="line">│   ├── stm32f10x_conf.h</span><br><span class="line">│   └── stm32f10x_it.h</span><br><span class="line">└── Src</span><br><span class="line">    ├── led.c</span><br><span class="line">    ├── main.c</span><br><span class="line">    └── stm32f10x_it.c</span><br><span class="line"></span><br><span class="line">3 directories, 6 files</span><br></pre></td></tr></table></figure><h1 id="Makefile"><a href="#Makefile" class="headerlink" title="Makefile"></a>Makefile</h1><p>和项目结构对应<br>也是改自cubemx生成</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> stm32 </tag>
+            
+            <tag> gcc </tag>
+            
+            <tag> makefile </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>cmsis-toolbox example</title>
+      <link href="/2025/05/08/cmsis-toolbox-example/"/>
+      <url>/2025/05/08/cmsis-toolbox-example/</url>
+      
+        <content type="html"><![CDATA[<p>To use the toolbox, including cbuild, csolution and cpackget , you need to install several extensions:Arm CMSIS Solution, Arm Device Manager, Arm Keil Studio Pack, and so on.<br>And you need to install the toolbox following the <a href="https://open-cmsis-pack.github.io/cmsis-toolbox/installation/">link</a>, I recommend you install it in vscode. It not only installed the toolbox itself, in my computer, when installing the toolbox by vcpkg, it also installed the flowing packages, <img src="/images/cmsis-packages.png" alt="packages"><br>after installing them, you need to specify some environment variables to make sure the project building is successful but do not worry if you install the toolbox in vscode, it will raise a window with tips.<br>Maybe it works now, but for me, it did not, I need to modify csolution.yml file  to select a compiler with help of  <a href="https://open-cmsis-pack.github.io/cmsis-toolbox/YML-Input-Format/#solution">document</a> and update the cmake to support.<br>Now it works.<br><img src="/images/cmsis-build.png" alt="compile"><br>I think it’s difficult to use it.<br>Installation is easy, but after creating a project, compilation, and reconfiguring are difficult</p><p>And I think it’s not created for people to use but for tools, like Keil(I guess), because if you obverse the project in Keil, you can find the uvoptx file is a xml file.</p>]]></content>
+      
+      
+      
+        <tags>
+            
+            <tag> stm32 </tag>
+            
+            <tag> cmsis-toolbox </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>Hello World</title>
+      <link href="/2025/05/08/hello-world/"/>
+      <url>/2025/05/08/hello-world/</url>
+      
+        <content type="html"><![CDATA[<p>I am going to write something, something I want to write and share.</p>]]></content>
+      
+      
+      
+    </entry>
+    
+    
+  
+  
+</search>
